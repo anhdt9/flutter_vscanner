@@ -1,14 +1,24 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vscanner/routes/routes.dart';
-import 'package:vscanner/services/AuthService.dart';
+import 'package:vscanner/services/auth_service.dart';
 import 'package:vscanner/utils/utils.dart';
-import 'package:vscanner/utils/validators/AppValidator.dart';
 
 class LoginController extends GetxController {
   StreamController _emailController = StreamController();
   StreamController _passwordController = StreamController();
+
+
+  TextEditingController emailEditCtrl = TextEditingController();
+  TextEditingController pwdEditCtrl = TextEditingController();
+  FocusNode emailFocus = FocusNode();
+  FocusNode pwdFocus = FocusNode();
+
+  var emailError = 'email error'.obs;
+  var pwdError = 'Password error'.obs;
+  var showPwd = false.obs;
 
   final _authService = Get.find<AuthService>();
 
@@ -18,14 +28,14 @@ class LoginController extends GetxController {
 
   bool isValidValues(String email, String password) {
     bool isValid = true;
-    if (!AppValidator.isValidEmail(email)) {
+    if (!GetUtils.isEmail(email)) {
       isValid = false;
       _emailController.sink.add('email_invalid');
     } else {
       _emailController.sink.add('OK');
     }
 
-    if (!AppValidator.isValidPwd(password)) {
+    if (GetUtils.isNullOrBlank(password)) {
       isValid = false;
       _passwordController.sink.add('password_invalid');
     } else {
@@ -47,8 +57,8 @@ class LoginController extends GetxController {
     );
   }
 
-  Future<void> signInWithEmailPassword(String email, String password) async {
-    final resultSignIn = await _authService.signInWithEmailPassword(email, password);
+  Future<void> signInWithEmailPassword() async {
+    final resultSignIn = await _authService.signInWithEmailPassword(emailEditCtrl.text, pwdEditCtrl.text);
     resultSignIn.fold(
       (error) async {
         showErrorSnackBar(error);
@@ -100,14 +110,40 @@ class LoginController extends GetxController {
   }
 
   void signOut(){
-
+    _authService.signOut();
   }
 
+
+  @override
+  void onInit() {
+
+  }
 
   @override
   void dispose() {
     _emailController.close();
     _passwordController.close();
+    emailEditCtrl.dispose();
+    pwdEditCtrl.dispose();
+    emailFocus.dispose();
+    pwdFocus.dispose();
     super.dispose();
+  }
+
+  void checkEmailFocus(BuildContext context) {
+    _fieldFocusChange(context, emailFocus, pwdFocus);
+  }
+
+  void checkPwdFocus(BuildContext context) {
+    _fieldFocusChange(context, pwdFocus, null);
+  }
+
+  void _fieldFocusChange(BuildContext context, FocusNode currentFocus, FocusNode nextFocus) {
+    if (nextFocus != null) {
+      currentFocus.unfocus();
+      FocusScope.of(context).requestFocus(nextFocus);
+    } else {
+      currentFocus.unfocus();
+    }
   }
 }
